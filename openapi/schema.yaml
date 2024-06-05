@@ -1,0 +1,688 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 0.0.0
+paths:
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/calendar/:
+    get:
+      operationId: v1_calendar_list
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Calendar'
+          description: ''
+    post:
+      operationId: v1_calendar_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Calendar'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Calendar'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Calendar'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+          description: ''
+  /api/v1/calendar/{id}/:
+    get:
+      operationId: v1_calendar_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this calendar.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+          description: ''
+    put:
+      operationId: v1_calendar_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this calendar.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Calendar'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Calendar'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Calendar'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+          description: ''
+    patch:
+      operationId: v1_calendar_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this calendar.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCalendar'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCalendar'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCalendar'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+          description: ''
+    delete:
+      operationId: v1_calendar_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this calendar.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/event/:
+    get:
+      operationId: v1_event_list
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+          description: ''
+    post:
+      operationId: v1_event_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Event'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+  /api/v1/event/{id}/:
+    get:
+      operationId: v1_event_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this event.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+    put:
+      operationId: v1_event_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this event.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Event'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+    patch:
+      operationId: v1_event_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this event.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEvent'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+    delete:
+      operationId: v1_event_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this event.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/event/{id}/occurrence/:
+    put:
+      operationId: v1_event_occurrence_update
+      description: Update an events occurrence
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this event.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Occurrence'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Occurrence'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Occurrence'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Occurrence'
+          description: ''
+  /api/v1/upcoming/:
+    get:
+      operationId: v1_upcoming_list
+      description: |-
+        /upcoming?period=WEEK&calendar=Example
+        /upcoming?period=CUSTOM&from_date=2011-01-01&to_date=2022-01-01
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Occurrence'
+          description: ''
+components:
+  schemas:
+    Calendar:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+      required:
+      - name
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 255
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        calendar:
+          type: string
+        attendees:
+          type: array
+          items:
+            type: integer
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+      required:
+      - attendees
+      - calendar
+      - description
+      - end_date
+      - id
+      - start_date
+      - title
+    FrequencyEnum:
+      enum:
+      - YEARLY
+      - MONTHLY
+      - WEEKLY
+      - DAILY
+      - HOURLY
+      type: string
+      description: |-
+        * `YEARLY` - YEARLY
+        * `MONTHLY` - MONTHLY
+        * `WEEKLY` - WEEKLY
+        * `DAILY` - DAILY
+        * `HOURLY` - HOURLY
+    Occurrence:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        unique_key:
+          type: string
+          readOnly: true
+        event:
+          type: integer
+          readOnly: true
+        calendar:
+          type: string
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 255
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        cancelled:
+          type: boolean
+        occurrence_id:
+          type: integer
+          writeOnly: true
+        occurrence_key:
+          type: string
+          writeOnly: true
+      required:
+      - calendar
+      - description
+      - end_date
+      - event
+      - id
+      - occurrence_key
+      - start_date
+      - title
+      - unique_key
+    PatchedCalendar:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+    PatchedEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 255
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        calendar:
+          type: string
+        attendees:
+          type: array
+          items:
+            type: integer
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+    Period:
+      type: object
+      description: |-
+        Week starts on Monday with a value of 0
+        Be explicity about the days.
+      properties:
+        rule:
+          $ref: '#/components/schemas/RuleEnum'
+        sequence:
+          type: array
+          items:
+            type: integer
+      required:
+      - rule
+      - sequence
+    Recurrence:
+      type: object
+      properties:
+        frequency:
+          $ref: '#/components/schemas/FrequencyEnum'
+        interval:
+          type: integer
+        count:
+          type: integer
+        until:
+          type: string
+          format: date
+        period:
+          $ref: '#/components/schemas/Period'
+      required:
+      - frequency
+    RuleEnum:
+      enum:
+      - BY_YEAR_DAY
+      - BY_MONTH
+      - BY_MONTH_DAY
+      - BY_WEEK_NO
+      - BY_WEEK_DAY
+      - BY_HOUR
+      type: string
+      description: |-
+        * `BY_YEAR_DAY` - BY_YEAR_DAY
+        * `BY_MONTH` - BY_MONTH
+        * `BY_MONTH_DAY` - BY_MONTH_DAY
+        * `BY_WEEK_NO` - BY_WEEK_NO
+        * `BY_WEEK_DAY` - BY_WEEK_DAY
+        * `BY_HOUR` - BY_HOUR
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
