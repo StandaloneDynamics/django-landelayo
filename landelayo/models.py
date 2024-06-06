@@ -97,7 +97,7 @@ class Event(models.Model):
         """
         :rtype: List[Occurrence]
         """
-        self.saved_occurrences: 'QuerySet' = self.occurrences.all()
+        self.saved_occurrences = self.occurrences.all()  # queryset
         occurrences = []
         if self.recurrence is None:
             if self.start_date < end_date and self.end_date > start_date:

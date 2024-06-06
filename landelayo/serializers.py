@@ -4,7 +4,6 @@ from rest_framework.validators import UniqueValidator
 from django.utils import timezone
 from django_enumfield.contrib.drf import NamedEnumField
 from landelayo.models import Calendar, Event, Occurrence
-from landelayo import utils
 from landelayo.enum import Frequency, Period, UpcomingPeriod
 
 MINUTE_LENGTH = 60
