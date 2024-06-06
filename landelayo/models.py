@@ -1,11 +1,8 @@
-from typing import Optional, List
-from datetime import date
+from typing import List
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import gettext, gettext_lazy as _
 from django.conf import settings
-from django_enumfield import enum
 from datetime import datetime
 from dateutil.rrule import rrule
 

@@ -22,12 +22,38 @@ class CalendarTestCase(APITestCase):
         data = {'name': 'Name'}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json(), {'name': 'Name'})
+        self.assertEqual(response.json(), {'id': 1, 'name': 'Name'})
 
         data = {'name': 'Name'}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {'name': ['This field must be unique.']})
+
+    def test_list(self):
+        data_1 = {'name': 'Personal'}
+        response = self.client.post(self.url, data_1, format='json')
+        self.assertEqual(response.status_code, 201)
+
+        data_2 = {'name': 'Work'}
+        response = self.client.post(self.url, data_2, format='json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get(self.url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [
+            {
+                'id': 1,
+                'name': 'Personal'
+            },
+            {
+                'id': 2,
+                'name': 'Work'
+            }
+        ])
+
+
+
+
 #
 #
 # class EventTestCase(APITestCase):

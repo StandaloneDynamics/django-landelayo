@@ -17,7 +17,8 @@ class CalendarSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Calendar
-        fields = ('name',)
+        fields = ('id', 'name')
+        read_only_fields = ('id', )
 
 
 class PeriodSerializer(serializers.Serializer):
@@ -83,10 +84,9 @@ class OccurrenceSerializer(serializers.ModelSerializer):
         We need to first check if an occurrence exists in the db by using the occurrence_id field
         as the id. if no occurrence is found assume it's a new object that needs to be saved.
         """
-        request = self.context['request']
-        event_id = self.context['event']
+        event = self.context['event']
         occurrence_id = validated_data.get('occurrence_id')
-        instance = Occurrence.objects.filter(id=occurrence_id, event_id=event_id).first()
+        instance = Occurrence.objects.filter(id=occurrence_id, event=event).first()
         if not instance:
             occurrence_key = validated_data.get('occurrence_key')
             try:
@@ -94,11 +94,6 @@ class OccurrenceSerializer(serializers.ModelSerializer):
                 event_id, original_start, original_end = unique_key.split('_')
             except ValueError as e:
                 raise serializers.ValidationError(e)
-
-            try:
-                event = Event.objects.get(id=event_id, creator=request.user)
-            except Event.DoesNotExist():
-                raise serializers.ValidationError('Invalid event')
 
             instance = Occurrence(
                 original_start_date=original_start, original_end_date=original_end,

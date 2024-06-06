@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema
 
 from landelayo.models import Calendar, Event
 from landelayo.serializers import CalendarSerializer, EventSerializer, ParamSerializer, OccurrenceSerializer
@@ -35,17 +36,14 @@ class EventViewSet(viewsets.ModelViewSet):
         """
         Update an events occurrence
         """
-        serializer = self.get_serializer(data=request.data, context={'request': request, 'event': pk})
+        event = self.get_object()
+        serializer = self.get_serializer(data=request.data, context={'event': event})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class UpcomingViewSet(viewsets.GenericViewSet):
-    """
-    /upcoming?period=WEEK&calendar=Example
-    /upcoming?period=CUSTOM&from_date=2011-01-01&to_date=2022-01-01
-    """
     serializer_class = OccurrenceSerializer
     permission_classes = [IsAuthenticated]
 
@@ -54,6 +52,11 @@ class UpcomingViewSet(viewsets.GenericViewSet):
             Q(attendees=self.request.user) | Q(creator=self.request.user)
         ).select_related('calendar')
 
+    @extend_schema(
+        parameters=[
+            ParamSerializer
+        ]
+    )
     def list(self, *args, **kwargs):
         serializer = ParamSerializer(data=self.request.query_params)
         serializer.is_valid(raise_exception=True)

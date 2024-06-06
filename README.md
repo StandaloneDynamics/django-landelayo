@@ -35,16 +35,19 @@ There are 3 Api's that are provided.
   * Eg: `http://localhost:8000/api/v1/calendars` 
   * Grouping events.
   * Allows for the creating and editing of different calendar names.
+  * [More Documentation and Screenshots Here](docs/calendar/calendar.md)
 
 * Events 
   * `http://localhost:8000/api/v1/events` 
   * This allows for the creation and editing of events.
   * This also allows for setting the rules for event occurrences.
+  * [More Documentation and Screenshots Here](docs/calendar/calendar.md)
 
 * Upcoming 
   * `http://localhost:8000/api/v1/upcoming`
   * View event occurrences over a particular date period (DAY, WEEK, MONTH)
-  * The is also an option to view over a particular period (CUSTOM)
+  * The is also an option to view over a custom period (CUSTOM)
+  * * [More Documentation and Screenshots Here](docs/calendar/calendar.md)
 
 
 
