@@ -41,20 +41,13 @@ There are 3 Api's that are provided.
   * `http://localhost:8000/api/v1/events` 
   * This allows for the creation and editing of events.
   * This also allows for setting the rules for event occurrences.
-  * [More Documentation and Screenshots Here](docs/calendar/calendar.md)
+  * [More Documentation and Screenshots Here](docs/event/event.md)
 
 * Upcoming 
   * `http://localhost:8000/api/v1/upcoming`
   * View event occurrences over a particular date period (DAY, WEEK, MONTH)
   * The is also an option to view over a custom period (CUSTOM)
-  * * [More Documentation and Screenshots Here](docs/calendar/calendar.md)
-
-
-
-## Changing Occurrence Rules For Event.
-
-
-
+  * * [More Documentation and Screenshots Here](docs/upcoming/upcoming.md)
 
 
 ## Openapi
