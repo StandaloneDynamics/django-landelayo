@@ -8,7 +8,6 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 from landelayo.models import Calendar, Event, Occurrence
-from landelayo.enum import Frequency
 
 
 class CalendarTestCase(APITestCase):
