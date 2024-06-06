@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -10,7 +10,7 @@ from .enum import Frequency, Period
 
 
 class Calendar(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255, unique=True, db_index=True)
 
     def __str__(self):
         return self.name
@@ -34,11 +34,6 @@ class Event(models.Model):
     def __str__(self):
         return f'{self.title}: {self.start_date}'
 
-    class Meta:
-        indexes = [
-            models.Index(fields=["content_type", "object_id"]),
-        ]
-
     def get_rule(self) -> dict:
         # convert the date rules do dictionary
         kwargs = {'freq': Frequency[self.recurrence['frequency']].to_rrule()}
@@ -57,12 +52,9 @@ class Event(models.Model):
 
         return kwargs
 
-    def is_occurrence_saved(self, start, end):
+    def is_occurrence_saved(self, start: datetime, end: datetime) -> Optional['Occurrence']:
         """
-        :param datetime start:
-        :param datetime end:
-        :rtype: Occurrence
-
+        Check that rrule dates are not already saved.
         """
         saved: Occurrence
         for saved in self.saved_occurrences:
@@ -70,18 +62,25 @@ class Event(models.Model):
                 return saved
         return None
 
-    def create_occurrence(self, start_date, end_date=None):
+    def occurrence_in_range(self, start: datetime, end: datetime) -> List['Occurrence']:
         """
-        :param datetime start_date:
-        :param datetime end_date:
-        :rtype: Occurrence
+        Check that saved occurrences that did not replace new rule change are still
+        with the date range
         """
+        saved = []
+        for occur in self.saved_occurrences:
+            if occur.start_date >= start and occur.end_date <= end:
+                saved.append(occur)
+        return saved
+
+    def create_occurrence(self, start_date: datetime, end_date: datetime = None) -> 'Occurrence':
         if end_date is None:
             end_date = start_date + (self.end_date - self.start_date)
 
-        saved_occurrence = self.is_occurrence_saved(start_date, end_date)
-        if saved_occurrence:
-            return saved_occurrence
+        saved = self.is_occurrence_saved(start_date, end_date)
+        if saved:
+            self.saved_occurrences = self.saved_occurrences.exclude(id=saved.id)
+            return saved
 
         return Occurrence(
             event=self,
@@ -98,7 +97,7 @@ class Event(models.Model):
         """
         :rtype: List[Occurrence]
         """
-        self.saved_occurrences = self.occurrences.all()
+        self.saved_occurrences: 'QuerySet' = self.occurrences.all()
         occurrences = []
         if self.recurrence is None:
             if self.start_date < end_date and self.end_date > start_date:
@@ -116,6 +115,9 @@ class Event(models.Model):
             for ocurr in list(rrule(dtstart=self.start_date, until=end_date, **rules)):
                 if start_date <= ocurr <= end_date:
                     occurrences.append(self.create_occurrence(ocurr))
+            # check if saved occurrences are still within period if rule changed
+            in_range = self.occurrence_in_range(start_date, end_date)
+            occurrences += in_range
             return occurrences
 
 
@@ -134,8 +136,3 @@ class Occurrence(models.Model):
 
     def __str__(self):
         return f'{self.title}: {self.start_date} - {self.end_date}'
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["content_type", "object_id"]),
-        ]
