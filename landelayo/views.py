@@ -11,6 +11,7 @@ from landelayo.serializers import CalendarSerializer, EventSerializer, ParamSeri
 from landelayo.utils import RequestParams
 from landelayo.occurrences import upcoming_occurrences
 
+
 class CalendarViewSet(viewsets.ModelViewSet):
     queryset = Calendar.objects.all()
     serializer_class = CalendarSerializer
@@ -69,5 +70,3 @@ class UpcomingViewSet(viewsets.GenericViewSet):
         )
         occurrences = upcoming_occurrences(params, self.get_queryset())
         return Response(self.get_serializer(occurrences, many=True).data, status=status.HTTP_200_OK)
-
-
