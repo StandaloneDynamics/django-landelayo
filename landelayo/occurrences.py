@@ -1,4 +1,4 @@
-from landelayo.utils import RequestParams, period_days
+from landelayo.utils import period_days
 
 
 def upcoming_occurrences(params, query):

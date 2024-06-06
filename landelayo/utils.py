@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, time
 from django.utils import timezone
 from calendar import monthrange
-from dateutil import rrule
 
-from landelayo.enum import UpcomingPeriod, Frequency
+from landelayo.enum import UpcomingPeriod
+
 
 @dataclass
 class DateRange:
