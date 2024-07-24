@@ -31,7 +31,7 @@ class EventViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Event.objects.filter(creator=self.request.user)
+        return Event.objects.filter(created_by=self.request.user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
