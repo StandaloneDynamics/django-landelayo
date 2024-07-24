@@ -28,4 +28,4 @@ MIDDLEWARE = [
 TIME_ZONE = 'UTC'
 USE_TZ = True
 
-LANDELAYO_USER_SERIALIZER='tests.serializer.CustomUserSerializer'
+LANDELAYO_USER_SERIALIZER = 'tests.serializer.CustomUserSerializer'
