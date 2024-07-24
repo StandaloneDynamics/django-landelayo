@@ -10,26 +10,45 @@ from django.contrib.auth.models import User
 from landelayo.models import Calendar, Event, Occurrence
 
 
+def serialized_event(event: Event):
+    attendees = [user.id for user in event.attendees.all()]
+    return {
+        'id': event.id,
+        'calendar': {
+            'id': event.calendar.id,
+            'name': event.calendar.name,
+            'color': event.calendar.color,
+            'created_by': {'email': '', 'id': 1, 'username': 'test_user'}
+        },
+        'attendees': attendees
+    }
+
+
 class CalendarTestCase(APITestCase):
     url = reverse('calendar-list')
 
     def setUp(self) -> None:
-        user = User.objects.create(username='test_user', password='password')
-        self.client.force_login(user)
+        self.user = User.objects.create(username='test_user', password='password')
+        self.client.force_login(self.user)
 
     def test_unique_name(self):
         data = {'name': 'Name'}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json(), {'id': 1, 'name': 'Name'})
+        self.assertEqual(response.json(), {
+            'id': 1,
+            'name': 'Name',
+            'color': '',
+            'created_by': {'email': '', 'id': 1, 'username': 'test_user'}
+        })
 
         data = {'name': 'Name'}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {'name': ['This field must be unique.']})
+        self.assertEqual(response.json(), {'non_field_errors': ['Calendar exists for user']})
 
     def test_list(self):
-        data_1 = {'name': 'Personal'}
+        data_1 = {'name': 'Personal', 'color': 'black'}
         response = self.client.post(self.url, data_1, format='json')
         self.assertEqual(response.status_code, 201)
 
@@ -42,13 +61,28 @@ class CalendarTestCase(APITestCase):
         self.assertEqual(response.json(), [
             {
                 'id': 1,
-                'name': 'Personal'
+                'name': 'Personal',
+                'color': 'black',
+                'created_by': {'email': '', 'id': 1, 'username': 'test_user'},
             },
             {
                 'id': 2,
-                'name': 'Work'
+                'name': 'Work',
+                'color': '',
+                'created_by': {'email': '', 'id': 1, 'username': 'test_user'}
             }
         ])
+
+    def test_edit(self):
+        cal = Calendar.objects.create(
+            name='Personal',
+            color='white',
+            created_by=self.user
+        )
+        url = reverse('calendar-detail', kwargs={'pk': cal.id})
+        data = {'name': 'Personal', 'color': 'red'}
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, 200)
 
 
 class EventTestCase(APITestCase):
@@ -60,14 +94,14 @@ class EventTestCase(APITestCase):
             "description": "Description",
             "start_date": start_date,
             "end_date": end_date,
-            "calendar": "Example",
+            "calendar_id": self.calendar.id,
             "attendees": [self.user.id],
             **kwargs
         }
 
     def setUp(self) -> None:
-        Calendar.objects.create(name='Example')
         self.user = User.objects.create(username='test_user', password='password', email='test@email.com')
+        self.calendar = Calendar.objects.create(name='Example', created_by=self.user)
         self.client.force_login(self.user)
 
     def test_required_fields(self):
@@ -80,7 +114,7 @@ class EventTestCase(APITestCase):
                 'description': ['This field is required.'],
                 'start_date': ['This field is required.'],
                 'end_date': ['This field is required.'],
-                'calendar': ['This field is required.'],
+                'calendar_id': ['This field is required.'],
                 'attendees': ['This field is required.']
             })
 
@@ -110,7 +144,16 @@ class EventTestCase(APITestCase):
         self.assertEqual(Event.objects.count(), 1)
         self.assertEqual(response.json(), {
             'attendees': [1],
-            'calendar': 'Example',
+            'calendar': {
+                'id': self.calendar.id,
+                'name': self.calendar.name,
+                'color': self.calendar.color,
+                'created_by': {
+                    'email': self.user.email,
+                    'id': self.user.id,
+                    'username': self.user.username
+                }
+            },
             'description': 'Description',
             'end_date': '2023-01-01T10:00:00Z',
             'id': 1,
@@ -127,7 +170,7 @@ class EventTestCase(APITestCase):
             calendar=Calendar.objects.get(),
             start_date=timezone.make_aware(datetime(2023, 12, 12, 12)),
             end_date=timezone.make_aware(datetime(2023, 12, 12, 14)),
-            creator=self.user
+            created_by=self.user
         )
         event.attendees.add(self.user)
 
@@ -158,14 +201,14 @@ class RecurrenceTestCase(APITestCase):
             "description": "Description",
             "start_date": timezone.now() + timezone.timedelta(hours=2),
             "end_date": timezone.now() + timezone.timedelta(hours=3),
-            "calendar": "Example",
+            "calendar_id": self.calendar.id,
             "attendees": [self.user.id],
             'recurrence': recurrence
         }
 
     def setUp(self) -> None:
-        Calendar.objects.create(name='Example')
         self.user = User.objects.create(username='test_user', password='password', email='test@email.com')
+        self.calendar = Calendar.objects.create(name='Example', created_by=self.user)
         self.client.force_login(self.user)
 
     def test_invalid_frequency(self):
@@ -231,15 +274,15 @@ class UpcomingTestCase(APITestCase):
 
     def setUp(self):
         self.maxDiff = None
-        cal = Calendar.objects.create(name='Example')
-        user = User.objects.create(username='test_user', password='password')
+        self.user = User.objects.create(username='test_user', password='password')
+        self.cal = Calendar.objects.create(name='Example', created_by=self.user)
         self.event = Event.objects.create(
             start_date=timezone.make_aware(datetime(2024, 1, 1, 12, 0)),
             end_date=timezone.make_aware(datetime(2024, 1, 1, 13, 0)),
             title='1st Event',
             description='This is what we do',
-            calendar=cal,
-            creator=user,
+            calendar=self.cal,
+            created_by=self.user,
             recurrence={
                 'frequency': 'DAILY', 'count': 5,
                 'period': {'rule': 'BY_WEEK_DAY', 'sequence': [0, 1]}
@@ -250,15 +293,15 @@ class UpcomingTestCase(APITestCase):
             end_date=timezone.make_aware(datetime(2024, 1, 4, 17, 30)),
             title='2nd Event',
             description='Description Here',
-            calendar=cal,
-            creator=user,
+            calendar=self.cal,
+            created_by=self.user,
             recurrence={
                 'frequency': 'WEEKLY',
                 'period': {'rule': 'BY_WEEK_DAY', 'sequence': [3, 4]}
             }
         )
-        self.event.attendees.add(user)
-        self.client.force_login(user)
+        self.event.attendees.add(self.user)
+        self.client.force_login(self.user)
 
     def test_invalid_period(self):
         data = {'period': 'INVALID', 'from_date': '2024-01-01', 'to_date': '2024-01-03'}
@@ -285,22 +328,20 @@ class UpcomingTestCase(APITestCase):
         self.assertEqual(len(response.json()), 2)
         self.assertEqual(response.json(), [
             {
-                'calendar': 'Example',
+                'event': serialized_event(self.event),
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-01T13:00:00Z',
-                'event': self.event.id,
                 'id': None,
                 'start_date': '2024-01-01T12:00:00Z',
                 'title': '1st Event',
                 'unique_key': 'MV8yMDI0LTAxLTAxIDEyOjAwOjAwKzAwOjAwXzIwMjQtMDEtMDEgMTM6MDA6MDArMDA6MDA='
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-02T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-02T12:00:00Z',
                 'title': '1st Event',
@@ -315,11 +356,10 @@ class UpcomingTestCase(APITestCase):
         self.assertEqual(len(response.json()), 4)
         self.assertEqual(response.json(), [
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-01T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-01T12:00:00Z',
                 'title': '1st Event',
@@ -329,11 +369,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-02T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-02T12:00:00Z',
                 'title': '1st Event',
@@ -343,11 +382,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-04T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-04T16:00:00Z',
                 'title': '2nd Event',
@@ -358,11 +396,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-05T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-05T16:00:00Z',
                 'title': '2nd Event',
@@ -381,11 +418,10 @@ class UpcomingTestCase(APITestCase):
         self.assertEqual(len(response.json()), 2)
         self.assertEqual(response.json(), [
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-03-14T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-03-14T16:00:00Z',
                 'title': '2nd Event',
@@ -396,11 +432,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-03-15T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-03-15T16:00:00Z',
                 'title': '2nd Event',
@@ -420,11 +455,10 @@ class UpcomingTestCase(APITestCase):
         self.assertEqual(len(response.json()), 1)
         self.assertEqual(response.json(), [
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-01T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-01T12:00:00Z',
                 'title': '1st Event',
@@ -445,11 +479,10 @@ class UpcomingTestCase(APITestCase):
         self.assertEqual(len(response.json()), 4)
         self.assertEqual(response.json(), [
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-01T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-01T12:00:00Z',
                 'title': '1st Event',
@@ -459,11 +492,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-02T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-02T12:00:00Z',
                 'title': '1st Event',
@@ -473,11 +505,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-04T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-04T16:00:00Z',
                 'title': '2nd Event',
@@ -488,11 +519,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-05T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-05T16:00:00Z',
                 'title': '2nd Event',
@@ -512,11 +542,10 @@ class UpcomingTestCase(APITestCase):
         self.assertEqual(len(response.json()), 13)
         self.assertEqual(response.json(), [
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-01T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-01T12:00:00Z',
                 'title': '1st Event',
@@ -526,11 +555,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-02T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-02T12:00:00Z',
                 'title': '1st Event',
@@ -540,11 +568,10 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-08T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-08T12:00:00Z',
                 'title': '1st Event',
@@ -554,11 +581,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-09T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-09T12:00:00Z',
                 'title': '1st Event',
@@ -568,11 +595,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-15T13:00:00Z',
-                'event': self.event.id,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-15T12:00:00Z',
                 'title': '1st Event',
@@ -582,11 +609,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-04T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-04T16:00:00Z',
                 'title': '2nd Event',
@@ -597,11 +624,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-05T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-05T16:00:00Z',
                 'title': '2nd Event',
@@ -612,11 +639,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-11T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-11T16:00:00Z',
                 'title': '2nd Event',
@@ -627,11 +654,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-12T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-12T16:00:00Z',
                 'title': '2nd Event',
@@ -642,11 +669,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-18T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-18T16:00:00Z',
                 'title': '2nd Event',
@@ -657,11 +684,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-19T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-19T16:00:00Z',
                 'title': '2nd Event',
@@ -672,11 +699,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-25T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-25T16:00:00Z',
                 'title': '2nd Event',
@@ -687,11 +714,11 @@ class UpcomingTestCase(APITestCase):
                 )
             },
             {
-                'calendar': 'Example',
+
                 'cancelled': False,
                 'description': 'Description Here',
                 'end_date': '2024-01-26T17:30:00Z',
-                'event': self.event_2.id,
+                'event': serialized_event(self.event_2),
                 'id': None,
                 'start_date': '2024-01-26T16:00:00Z',
                 'title': '2nd Event',
@@ -744,7 +771,6 @@ class OccurrenceTestCase(APITestCase):
             'start_date': start,
             'end_date': end,
             'occurrence_key': self.unique_key(start, end),
-            'calendar': self.cal.name,
             'cancelled': True
         }
         response = self.client.put(self.url(self.event.id), data=data)
@@ -769,11 +795,10 @@ class OccurrenceTestCase(APITestCase):
         self.assertEqual(len(response.json()), 1)
         self.assertEqual(response.json(), [{
             'id': None,
-            'event': self.event.id,
+            'event': serialized_event(self.event),
             'unique_key': self.unique_key(start, end),
             'title': '1st Event',
             'description': 'This is what we do',
-            'calendar': self.cal.name,
             'start_date': '2024-01-03T12:00:00Z',
             'end_date': '2024-01-03T13:00:00Z',
             'cancelled': False
@@ -787,20 +812,18 @@ class OccurrenceTestCase(APITestCase):
             'start_date': new_start,
             'end_date': end,
             'occurrence_key': self.unique_key(start, end),
-            'calendar': self.cal.name
         }
         response = self.client.put(self.url(self.event.id), data=data)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Occurrence.objects.count(), 1)
         self.assertEqual(response.json(), {
             'id': 1,
-            'event': 1,
+            'event': serialized_event(self.event),
             'title': 'Update Title',
             'description': 'Update description',
             'start_date': '2024-01-03T12:30:00Z',
             'end_date': '2024-01-03T13:00:00Z',
             'unique_key': self.unique_key(start, end),
-            'calendar': self.cal.name,
             'cancelled': False
         })
 
@@ -819,10 +842,9 @@ class OccurrenceTestCase(APITestCase):
         self.assertEqual(response.json(), [
             {
                 'id': None,
-                'event': 1,
+                'event': serialized_event(self.event),
                 'title': '1st Event',
                 'description': 'This is what we do',
-                'calendar': self.cal.name,
                 'cancelled': False,
                 'unique_key': self.unique_key(occ_1_start, occ_1_end),
                 'start_date': '2024-01-01T12:00:00Z',
@@ -830,10 +852,9 @@ class OccurrenceTestCase(APITestCase):
             },
             {
                 'id': None,
-                'event': 1,
+                'event': serialized_event(self.event),
                 'title': '1st Event',
                 'description': 'This is what we do',
-                'calendar': self.cal.name,
                 'cancelled': False,
                 'unique_key': self.unique_key(occ_2_start, occ_2_end),
                 'start_date': '2024-01-02T12:00:00Z',
@@ -841,10 +862,9 @@ class OccurrenceTestCase(APITestCase):
             },
             {
                 'id': 1,
-                'event': 1,
+                'event': serialized_event(self.event),
                 'title': 'Update Title',
                 'description': 'Update description',
-                'calendar': self.cal.name,
                 'cancelled': False,
                 'unique_key': self.unique_key(occ_3_start, occ_3_end),
                 'start_date': '2024-01-03T12:30:00Z',
@@ -858,7 +878,7 @@ class OccurrenceTestCase(APITestCase):
         initial rule: Everyday
         new rule: Mon, Tue weekly
         """
-        # This ocurrence is part of initial rule with start,end times changes
+        # This occurrence is part of initial rule with start,end times changes
         # It's not part of the new rule, just should still appear in results
         Occurrence.objects.create(
             event=self.event,
@@ -882,33 +902,30 @@ class OccurrenceTestCase(APITestCase):
         self.assertEqual(len(response.json()), 3)
         self.assertEqual(response.json(), [
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-01T13:00:00Z',
-                'event': 1,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-01T12:00:00Z',
                 'title': '1st Event',
                 'unique_key': 'MV8yMDI0LTAxLTAxIDEyOjAwOjAwKzAwOjAwXzIwMjQtMDEtMDEgMTM6MDA6MDArMDA6MDA='
             },
             {
-                'calendar': 'Example',
                 'cancelled': False,
                 'description': 'This is what we do',
                 'end_date': '2024-01-02T13:00:00Z',
-                'event': 1,
+                'event': serialized_event(self.event),
                 'id': None,
                 'start_date': '2024-01-02T12:00:00Z',
                 'title': '1st Event',
                 'unique_key': 'MV8yMDI0LTAxLTAyIDEyOjAwOjAwKzAwOjAwXzIwMjQtMDEtMDIgMTM6MDA6MDArMDA6MDA='
             },
             {
-                'calendar': 'Example',
                 'cancelled': True,
                 'description': 'This is what we do',
                 'end_date': '2024-01-03T10:00:00Z',
-                'event': 1,
+                'event': serialized_event(self.event),
                 'id': 1,
                 'start_date': '2024-01-03T09:00:00Z',
                 'title': '1st Event',
