@@ -13,13 +13,20 @@ from landelayo.occurrences import upcoming_occurrences
 
 
 class CalendarViewSet(viewsets.ModelViewSet):
-    queryset = Calendar.objects.all()
     serializer_class = CalendarSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return Calendar.objects.filter(created_by=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(created_by=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -29,7 +36,7 @@ class EventViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save(creator=request.user)
+        serializer.save(created_by=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=['PUT'], detail=True, serializer_class=OccurrenceSerializer)
@@ -50,7 +57,7 @@ class UpcomingViewSet(viewsets.GenericViewSet):
 
     def get_queryset(self):
         return Event.objects.filter(
-            Q(attendees=self.request.user) | Q(creator=self.request.user)
+            Q(attendees=self.request.user) | Q(created_by=self.request.user)
         ).select_related('calendar')
 
     @extend_schema(
