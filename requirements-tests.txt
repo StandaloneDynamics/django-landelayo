@@ -1,1 +1,4 @@
-freezegun==1.5.1
+freezegun
+coverage
+flake8
+factory-boy
