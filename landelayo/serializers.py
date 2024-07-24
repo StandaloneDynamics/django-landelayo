@@ -64,17 +64,75 @@ class RecurrenceSerializer(serializers.Serializer):
         return attrs
 
 
+class BasicEventSerializer(serializers.ModelSerializer):
+    calendar = CalendarSerializer(read_only=True)
+
+    class Meta:
+        model = Event
+        fields = ('id', 'calendar', 'attendees')
+
+
+class EventSerializer(serializers.ModelSerializer):
+    calendar_id = serializers.PrimaryKeyRelatedField(
+        queryset=Calendar.objects.all(),
+        write_only=True
+    )
+    calendar = CalendarSerializer(read_only=True)
+    recurrence = RecurrenceSerializer(required=False)
+
+    class Meta:
+        model = Event
+        fields = (
+            'id', 'title', 'description', 'start_date', 'end_date', 'calendar',
+            'attendees', 'recurrence', 'calendar_id'
+        )
+        read_only_fields = ('id',)
+
+    def validate(self, attrs):
+        start_date = attrs.get('start_date')
+        end_date = attrs.get('end_date')
+        if not start_date or not end_date:
+            raise serializers.ValidationError('Date fields required')
+
+        if start_date > end_date:
+            raise serializers.ValidationError('Invalid date range')
+
+        if start_date < timezone.now():
+            raise serializers.ValidationError('Invalid date range')
+
+        return attrs
+
+    def create(self, validated_data):
+        calendar = validated_data.pop('calendar_id')
+        attendees = validated_data.pop('attendees', None)
+
+        event = Event.objects.create(calendar=calendar, **validated_data)
+        if attendees:
+            for user in attendees:
+                event.attendees.add(user)
+        return event
+
+    def update(self, instance, validated_data):
+        instance.calendar = validated_data.pop('calendar_id', instance.calendar)
+        attendees = validated_data.pop('attendees')
+        if attendees:
+            instance.attendees.clear()
+            for user in attendees:
+                instance.attendees.add(user)
+        return super().update(instance, validated_data)
+
+
 class OccurrenceSerializer(serializers.ModelSerializer):
-    calendar = serializers.CharField(source='event.calendar.name')
+    event = BasicEventSerializer(read_only=True)
     occurrence_id = serializers.IntegerField(write_only=True, required=False)
     occurrence_key = serializers.CharField(write_only=True)
     unique_key = serializers.SerializerMethodField()
 
     class Meta:
         model = Occurrence
-        fields = ('id', 'unique_key', 'event', 'calendar', 'title', 'description',
+        fields = ('id', 'unique_key', 'event', 'title', 'description',
                   'start_date', 'end_date', 'cancelled', 'occurrence_id', 'occurrence_key')
-        read_only_fields = ['id', 'event', 'calender']
+        read_only_fields = ['id', 'unique_key']
 
     def get_unique_key(self, obj):
         """
@@ -123,50 +181,6 @@ class OccurrenceSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
-
-
-class EventSerializer(serializers.ModelSerializer):
-    calendar = serializers.SlugRelatedField(queryset=Calendar.objects.all(), slug_field='name')
-    recurrence = RecurrenceSerializer(required=False)
-
-    class Meta:
-        model = Event
-        fields = (
-            'id', 'title', 'description', 'start_date', 'end_date', 'calendar',
-            'attendees', 'recurrence'
-        )
-        read_only_fields = ('id',)
-
-    def validate(self, attrs):
-        start_date = attrs.get('start_date')
-        end_date = attrs.get('end_date')
-        if not start_date or not end_date:
-            raise serializers.ValidationError('Date fields required')
-
-        if start_date > end_date:
-            raise serializers.ValidationError('Invalid date range')
-
-        if start_date < timezone.now():
-            raise serializers.ValidationError('Invalid date range')
-
-        return attrs
-
-    def create(self, validated_data):
-        attendees = validated_data.pop('attendees', None)
-
-        event = Event.objects.create(**validated_data)
-        if attendees:
-            for user in attendees:
-                event.attendees.add(user)
-        return event
-
-    def update(self, instance, validated_data):
-        attendees = validated_data.pop('attendees')
-        if attendees:
-            instance.attendees.clear()
-            for user in attendees:
-                instance.attendees.add(user)
-        return super().update(instance, validated_data)
 
 
 class ParamSerializer(serializers.Serializer):
