@@ -746,8 +746,8 @@ class OccurrenceTestCase(APITestCase):
         super().setUp()
         self.maxDiff = None
         self.upcoming_url = reverse('upcoming-list')
-        self.cal = Calendar.objects.create(name='Example')
         user = User.objects.create(username='test_user', password='password')
+        self.cal = Calendar.objects.create(name='Example', created_by=user)
         self.client.force_login(user)
         self.event = Event.objects.create(
             start_date=timezone.make_aware(datetime(2024, 1, 1, 12, 0)),
@@ -755,7 +755,7 @@ class OccurrenceTestCase(APITestCase):
             title='1st Event',
             description='This is what we do',
             calendar=self.cal,
-            creator=user,
+            created_by=user,
             recurrence={
                 'frequency': 'DAILY', 'count': 5
             }

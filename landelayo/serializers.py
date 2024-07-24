@@ -134,7 +134,7 @@ class OccurrenceSerializer(serializers.ModelSerializer):
                   'start_date', 'end_date', 'cancelled', 'occurrence_id', 'occurrence_key')
         read_only_fields = ['id', 'unique_key']
 
-    def get_unique_key(self, obj):
+    def get_unique_key(self, obj) -> bytes:
         """
         Occurrences are generated lazily, so they will not have an actual id
         So Generate a constant unique key if occurrence has not being persisted.

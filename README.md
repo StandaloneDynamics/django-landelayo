@@ -29,6 +29,11 @@ urlpatterns = [
 ]
 ```
 
+### Settings
+A Configuration variable called `LANDELAYO_USER_SERIALIZER` is available to use your own user serializer.
+The default is `landelayo.settings.UserSerializer`
+
+
 ## ViewSets
 There are 3 Api's that are provided.
 * Calendar 
@@ -38,17 +43,16 @@ There are 3 Api's that are provided.
   * [More Documentation and Screenshots Here](docs/calendar/calendar.md)
 
 * Events 
-  * `http://localhost:8000/api/v1/events` 
+  * Eg: `http://localhost:8000/api/v1/events` 
   * This allows for the creation and editing of events.
   * This also allows for setting the rules for event occurrences.
   * [More Documentation and Screenshots Here](docs/event/event.md)
 
 * Upcoming 
-  * `http://localhost:8000/api/v1/upcoming`
+  * Eg: `http://localhost:8000/api/v1/upcoming`
   * View event occurrences over a particular date period (DAY, WEEK, MONTH)
   * The is also an option to view over a custom period (CUSTOM)
-  * * [More Documentation and Screenshots Here](docs/upcoming/upcoming.md)
+  * [More Documentation and Screenshots Here](docs/upcoming/upcoming.md)
 
-
-## Openapi
-An up to date openapi schema is available under `openapi/schema.yaml`
+## OpenAPI
+Landelayo has support for swagger docs

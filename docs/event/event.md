@@ -1,5 +1,10 @@
 # Event
 
+## Endpoints
+
+![event endpoints](screenshots/event_endpoints.png)
+
+
 ## Get Request
 
 ![event get request](screenshots/event_get.png)
