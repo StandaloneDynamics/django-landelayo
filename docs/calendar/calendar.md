@@ -1,5 +1,9 @@
 # Calendar Endpoint
 
+
+## Endpoints
+![calendar endpoints](screenshot/calendar_endpoints.png)
+
 ## Example Get Request
 
 ![calendar get request](screenshot/calendar_get.png)

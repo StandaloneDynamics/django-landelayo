@@ -29,6 +29,11 @@ urlpatterns = [
 ]
 ```
 
+### Settings
+A Configuration variable called `LANDELAYO_USER_SERIALIZER` is available to use your own user serializer.
+The default is `landelayo.settings.UserSerializer`
+
+
 ## ViewSets
 There are 3 Api's that are provided.
 * Calendar 
@@ -49,6 +54,5 @@ There are 3 Api's that are provided.
   * The is also an option to view over a custom period (CUSTOM)
   * * [More Documentation and Screenshots Here](docs/upcoming/upcoming.md)
 
-
-## Openapi
-An up to date openapi schema is available under `openapi/schema.yaml`
+## OpenAPI
+Landelayo has support for openapi
