@@ -10,10 +10,20 @@ from .enum import Frequency, Period
 
 
 class Calendar(models.Model):
-    name = models.CharField(max_length=255, unique=True, db_index=True)
+    name = models.CharField(max_length=255)
+    color = models.CharField(max_length=200, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='calendars')
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_by'])
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'created_by'], name='unique_name')
+        ]
 
 
 class Event(models.Model):
@@ -22,14 +32,22 @@ class Event(models.Model):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     attendees = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='event_attendees')
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='event_creator')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='events')
     calendar = models.ForeignKey(Calendar, on_delete=models.CASCADE)
-    recurrence = models.JSONField(null=True)
+    recurrence = models.JSONField(null=True, blank=True)
+    all_day = models.BooleanField(default=False)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True)
     object_id = models.PositiveIntegerField(null=True)
     content_object = GenericForeignKey('content_type', 'object_id')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_by']),
+            models.Index(fields=['start_date', 'end_date'])
+
+        ]
 
     def __str__(self):
         return f'{self.title}: {self.start_date}'
