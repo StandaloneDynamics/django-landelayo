@@ -1,23 +1,39 @@
 import base64
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
+from rest_framework.validators import UniqueTogetherValidator
 from django.utils import timezone
 from django_enumfield.contrib.drf import NamedEnumField
 from landelayo.models import Calendar, Event, Occurrence
 from landelayo.enum import Frequency, Period, UpcomingPeriod
+from landelayo.settings import get_user_serializer
 
 MINUTE_LENGTH = 60
 HOUR_LENGTH = 24
 DAY_LENGTH = 7
 
+UserSerializer = get_user_serializer()
+
 
 class CalendarSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(max_length=255, validators=[UniqueValidator(Calendar.objects.all())])
+    name = serializers.CharField(max_length=255)
+    created_by = UserSerializer(read_only=True)
 
     class Meta:
         model = Calendar
-        fields = ('id', 'name')
-        read_only_fields = ('id', )
+        fields = ('id', 'name', 'color', 'created_by')
+        read_only_fields = ('id',)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'request' in self.context:
+            user = self.context["request"].user
+            self.validators = [
+                UniqueTogetherValidator(
+                    queryset=Calendar.objects.filter(created_by=user),
+                    fields=["name"],
+                    message="Calendar exists for user",
+                )
+            ]
 
 
 class PeriodSerializer(serializers.Serializer):
