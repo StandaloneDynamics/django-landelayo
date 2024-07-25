@@ -2,6 +2,7 @@ from typing import List, Optional
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 from django.conf import settings
 from datetime import datetime
 from dateutil.rrule import rrule
@@ -123,13 +124,18 @@ class Event(models.Model):
             else:
                 return []
         else:
+            rules = self.get_rule()
             if self.start_date > end_date:
                 return []
-            if 'until' in self.recurrence:
-                if self.recurrence['until'] < start_date.date():
+            if 'until' in rules:
+                until_date = datetime.strptime(rules['until'], "%Y-%m-%d")
+                if until_date.date() < start_date.date():
+                    rules.pop('until', None)
                     return []
+                rules.pop('until', None)
+                end_date = timezone.make_aware(until_date)
 
-            rules = self.get_rule()
+
             for ocurr in list(rrule(dtstart=self.start_date, until=end_date, **rules)):
                 if start_date <= ocurr <= end_date:
                     occurrences.append(self.create_occurrence(ocurr))

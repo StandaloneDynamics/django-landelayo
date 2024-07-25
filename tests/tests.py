@@ -732,6 +732,63 @@ class UpcomingTestCase(APITestCase):
         ])
 
 
+class UpcomingUntilTestCase(APITestCase):
+    url = reverse('upcoming-list')
+
+    def setUp(self):
+        self.maxDiff = None
+        self.user = User.objects.create(username='test_user', password='password')
+        self.cal = Calendar.objects.create(name='Example', created_by=self.user)
+
+        Event.objects.create(
+            start_date=timezone.make_aware(datetime(2024, 8, 1, 16, 0)),
+            end_date=timezone.make_aware(datetime(2024, 8, 1, 17, 0)),
+            title='Event',
+            description='Description Here',
+            calendar=self.cal,
+            created_by=self.user,
+            recurrence={
+                'frequency': 'DAILY',
+                'until': '2024-08-05'
+            }
+        )
+        Event.objects.create(
+            start_date=timezone.make_aware(datetime(2024, 9, 1, 16, 0)),
+            end_date=timezone.make_aware(datetime(2024, 9, 1, 17, 0)),
+            title='Event',
+            description='Description Here',
+            calendar=self.cal,
+            created_by=self.user,
+        )
+
+        self.client.force_login(self.user)
+
+    @freeze_time('2024-08-01')
+    def test_until(self):
+        data = {'period': 'WEEK'}
+        response = self.client.get(self.url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 4)
+
+    @freeze_time('2024-08-06')
+    def test_after_until(self):
+        data = {'period': 'DAY'}
+        response = self.client.get(self.url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 0)
+
+    @freeze_time('2024-09-01')
+    def test_in_between(self):
+        self.client.force_login(self.user)
+        data = {'period': 'DAY'}
+        response = self.client.get(self.url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
+
+
+
+
+
 class OccurrenceTestCase(APITestCase):
 
     @staticmethod
