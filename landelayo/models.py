@@ -135,7 +135,6 @@ class Event(models.Model):
                 rules.pop('until', None)
                 end_date = timezone.make_aware(until_date)
 
-
             for ocurr in list(rrule(dtstart=self.start_date, until=end_date, **rules)):
                 if start_date <= ocurr <= end_date:
                     occurrences.append(self.create_occurrence(ocurr))

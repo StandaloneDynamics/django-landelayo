@@ -786,9 +786,6 @@ class UpcomingUntilTestCase(APITestCase):
         self.assertEqual(len(response.json()), 1)
 
 
-
-
-
 class OccurrenceTestCase(APITestCase):
 
     @staticmethod
