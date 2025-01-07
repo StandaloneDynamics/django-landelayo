@@ -226,7 +226,7 @@ class RecurrenceTestCase(APITestCase):
         self.assertEqual(response.json()['recurrence'], {'frequency': 'DAILY'})
 
     def test_invalid_count_until(self):
-        recurrence = {'frequency': 'DAILY', 'count': 5, 'until': '2025-01-01'}
+        recurrence = {'frequency': 'DAILY', 'count': 5, 'until': '2026-01-01'}
         data = self.data(recurrence)
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 400)
